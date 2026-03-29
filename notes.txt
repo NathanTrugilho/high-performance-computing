@@ -1,0 +1,216 @@
+OpenMP (Open Multi-Processing) — Resumo Prático
+
+OpenMP é uma API para paralelismo em memória compartilhada usada em C, C++ e Fortran. Baseia-se em diretivas (pragmas), variáveis de ambiente e bibliotecas.
+
+--------------------------------------------------
+
+1. Conceitos Fundamentais
+
+- Memória compartilhada: todas as threads acessam o mesmo espaço de memória.
+- Modelo Fork-Join:
+  - Uma thread principal cria várias threads (fork).
+  - Após execução paralela, ocorre sincronização (join).
+- Granularidade:
+  - Muito fina → overhead alto.
+  - Muito grossa → má utilização dos núcleos.
+
+--------------------------------------------------
+
+2. Estrutura Básica
+
+#include <omp.h>
+
+#pragma omp parallel
+{
+    // Executado por múltiplas threads
+}
+
+- #pragma omp parallel cria uma região paralela.
+
+--------------------------------------------------
+
+3. Controle de Threads
+
+Definir número de threads:
+
+omp_set_num_threads(4);
+
+Ou via variável de ambiente:
+
+export OMP_NUM_THREADS=4
+
+Obter informações:
+
+int id = omp_get_thread_num();
+int total = omp_get_num_threads();
+
+--------------------------------------------------
+
+4. Paralelismo em Loops
+
+#pragma omp parallel for
+for (int i = 0; i < N; i++) {
+    // execução paralela
+}
+
+- As iterações são divididas automaticamente entre threads.
+
+--------------------------------------------------
+
+5. Escopo de Variáveis
+
+Shared (padrão):
+- Variável compartilhada entre threads.
+
+Private:
+#pragma omp parallel for private(i)
+- Cada thread tem sua própria cópia da variável.
+
+Firstprivate:
+- Igual ao private, mas inicializa com o valor original.
+
+Reduction:
+int sum = 0;
+
+#pragma omp parallel for reduction(+:sum)
+for (int i = 0; i < N; i++) {
+    sum += i;
+}
+
+- Combina os resultados das threads.
+
+--------------------------------------------------
+
+6. Sincronização
+
+Critical:
+#pragma omp critical
+{
+    // apenas uma thread executa por vez
+}
+
+Atomic:
+#pragma omp atomic
+x++;
+
+- Mais leve que critical, usado para operações simples.
+
+Barrier:
+#pragma omp barrier
+
+- Sincroniza todas as threads.
+
+Nowait:
+#pragma omp for nowait
+
+- Remove a barreira implícita ao final de loops.
+
+--------------------------------------------------
+
+7. Seções Paralelas
+
+#pragma omp parallel sections
+{
+    #pragma omp section
+    {
+        // tarefa 1
+    }
+
+    #pragma omp section
+    {
+        // tarefa 2
+    }
+}
+
+- Divide tarefas diferentes entre threads.
+
+--------------------------------------------------
+
+8. Scheduling (Distribuição de Iterações)
+
+#pragma omp parallel for schedule(tipo, chunk)
+
+Tipos principais:
+
+- static:
+  Divisão fixa das iterações. Menor overhead.
+
+- dynamic:
+  Threads pegam trabalho conforme ficam livres.
+
+- guided:
+  Similar ao dynamic, mas reduz o tamanho dos blocos ao longo do tempo.
+
+Exemplo:
+
+#pragma omp parallel for schedule(dynamic, 10)
+
+--------------------------------------------------
+
+9. Diretivas Úteis
+
+Single:
+#pragma omp single
+{
+    // executado por apenas uma thread
+}
+
+Master:
+#pragma omp master
+{
+    // executado apenas pela thread principal
+}
+
+--------------------------------------------------
+
+10. Boas Práticas
+
+- Evitar uso excessivo de regiões critical.
+- Preferir reduction ao invés de critical para somas/acumulações.
+- Escolher o tipo de scheduling adequado.
+- Minimizar comunicação entre threads.
+- Garantir carga de trabalho suficiente para compensar overhead.
+
+--------------------------------------------------
+
+11. Exemplo Completo
+
+#include <stdio.h>
+#include <omp.h>
+
+int main() {
+    int sum = 0;
+
+    #pragma omp parallel for reduction(+:sum)
+    for (int i = 0; i < 100; i++) {
+        sum += i;
+    }
+
+    printf("Soma: %d\n", sum);
+    return 0;
+}
+
+--------------------------------------------------
+
+12. Compilação
+
+gcc -fopenmp programa.c -o programa
+
+--------------------------------------------------
+
+13. Quando Usar OpenMP
+
+- Problemas CPU-bound
+- Laços independentes
+- Processamento numérico
+- Algoritmos com paralelismo de dados
+
+--------------------------------------------------
+
+14. Limitações
+
+- Não funciona bem com dependência entre iterações
+- Escalabilidade limitada ao número de núcleos
+- Overhead de criação e sincronização de threads
+
+--------------------------------------------------
